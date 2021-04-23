@@ -153,7 +153,7 @@ defmodule Ockam.Examples.Stream.PublisherProxy do
   end
 
   def route(payload, route, state) do
-    Ockam.Router.route(%{
+    Ockam.Router.route(%Ockam.Message{
       onward_route: route,
       return_route: [Map.get(state, :address)],
       payload: payload

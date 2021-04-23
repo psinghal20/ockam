@@ -42,7 +42,7 @@ defmodule Ockam.Examples.Stream do
   def route_message(message) do
     payload = Ockam.MessageProtocol.encode_payload(Ockam.Protocol.Binary, :request, message)
 
-    Ockam.Router.route(%{
+    Ockam.Router.route(%Ockam.Message{
       onward_route: ["publisher"],
       return_route: [],
       payload: payload

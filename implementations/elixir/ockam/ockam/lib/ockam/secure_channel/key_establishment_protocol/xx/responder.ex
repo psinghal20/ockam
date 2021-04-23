@@ -45,7 +45,12 @@ defmodule Ockam.SecureChannel.KeyEstablishmentProtocol.XX.Responder do
   end
 
   def send(message, onward_route, return_route) do
-    envelope = %{onward_route: onward_route, return_route: return_route, payload: message}
+    envelope = %Ockam.Message{
+      onward_route: onward_route,
+      return_route: return_route,
+      payload: message
+    }
+
     Router.route(envelope)
   end
 

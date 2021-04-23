@@ -83,7 +83,7 @@ if Code.ensure_loaded?(:ranch) do
     end
 
     defp create_outgoing_message(message) do
-      %{
+      %Ockam.Message{
         onward_route: Message.onward_route(message),
         payload: Message.payload(message),
         return_route: Message.return_route(message)

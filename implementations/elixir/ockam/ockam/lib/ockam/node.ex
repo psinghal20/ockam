@@ -152,7 +152,7 @@ defmodule Ockam.Node do
 
     case payload do
       @ping ->
-        reply = %{payload: @pong, onward_route: return_route}
+        reply = %Ockam.Message{payload: @pong, onward_route: return_route}
         Router.route(reply)
 
       unexpected_payload ->

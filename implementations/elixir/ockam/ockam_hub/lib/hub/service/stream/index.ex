@@ -47,7 +47,7 @@ defmodule Ockam.Hub.Service.Stream.Index do
   end
 
   def reply_index(client_id, stream_name, index, return_route, state) do
-    Ockam.Router.route(%{
+    Ockam.Router.route(%Ockam.Message{
       onward_route: return_route,
       return_route: [state.address],
       payload:
