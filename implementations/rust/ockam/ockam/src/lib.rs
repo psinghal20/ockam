@@ -40,9 +40,11 @@ pub use ockam_node_no_std::*;
 mod error;
 pub use error::*;
 mod credential;
+mod delay;
 mod lease;
 
 pub use credential::*;
+pub use delay::*;
 pub use lease::*;
 
 mod remote_forwarder;
