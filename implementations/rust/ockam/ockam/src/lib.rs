@@ -53,6 +53,8 @@ pub use remote_forwarder::*;
 pub use ockam_core::worker;
 pub mod protocols;
 
+pub mod stream;
+
 pub use ockam_core::{
     Address, Any, Encoded, Error, Message, ProtocolId, Result, Route, Routed, RouterMessage,
     TransportMessage, Worker,

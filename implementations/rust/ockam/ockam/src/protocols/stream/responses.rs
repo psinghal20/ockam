@@ -2,7 +2,7 @@
 
 use crate::{
     protocols::{ParserFragment, ProtocolPayload},
-    Message, ProtocolId, Result, Worker,
+    Any, Message, ProtocolId, Result, Routed, Worker,
 };
 use serde::{Deserialize, Serialize};
 
@@ -107,6 +107,7 @@ pub struct Index {
 ///
 /// In your worker you will want to match this enum, given to you via
 /// the `ProtocolParser` abstraction.
+#[derive(Serialize, Deserialize)]
 pub enum Response {
     Init(Init),
     PushConfirm(PushConfirm),
@@ -118,7 +119,7 @@ pub enum Response {
 pub struct ResponseParser<W, F>
 where
     W: Worker,
-    F: Fn(&mut W, Response),
+    F: Fn(&mut W, Routed<Response>),
 {
     f: F,
     _w: std::marker::PhantomData<W>,
@@ -127,7 +128,7 @@ where
 impl<W, F> ResponseParser<W, F>
 where
     W: Worker,
-    F: Fn(&mut W, Response),
+    F: Fn(&mut W, Routed<Response>),
 {
     /// Create a new stream protocol parser with a response closure
     ///
@@ -146,7 +147,7 @@ where
 impl<W, F> ParserFragment<W> for ResponseParser<W, F>
 where
     W: Worker,
-    F: Fn(&mut W, Response),
+    F: Fn(&mut W, Routed<Response>),
 {
     fn ids(&self) -> Vec<ProtocolId> {
         vec![
@@ -163,6 +164,7 @@ where
     fn parse(
         &self,
         state: &mut W,
+        routed: &Routed<Any>,
         ProtocolPayload { protocol, data }: ProtocolPayload,
     ) -> Result<()> {
         // Parse payload into a response
@@ -174,8 +176,10 @@ where
             _ => unreachable!(),
         };
 
+        let (addr, trans) = routed.dissolve();
+
         // Call the user code
-        (&self.f)(state, resp);
+        (&self.f)(state, Routed::v1(resp, addr, trans));
 
         Ok(())
     }
