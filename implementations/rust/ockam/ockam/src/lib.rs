@@ -41,6 +41,8 @@ mod error;
 pub use error::*;
 mod credential;
 mod lease;
+mod local_entity;
+pub use local_entity::*;
 
 pub use credential::*;
 pub use lease::*;
