@@ -1,4 +1,4 @@
-defmodule Ockam.Example.Stream.BiDirectional.Local do
+defmodule Ockam.Example.Stream.BiDirectional.SecureChannel do
   @moduledoc """
 
   Ping-pong example for bi-directional stream communication using local subsctiption
@@ -14,8 +14,8 @@ defmodule Ockam.Example.Stream.BiDirectional.Local do
   Expected behaviour:
 
   Two nodes "ping" and "pong" send messages to each other using two streams:
-  "pong_topic" to send messages to "pong" node
-  "ping_topic" to send messages to "ping" node
+  "sc_listener_topic" to send messages to "pong" node
+  "sc_initiator_topic" to send messages to "ping" node
 
   Implementation:
 
@@ -23,6 +23,10 @@ defmodule Ockam.Example.Stream.BiDirectional.Local do
 
   Ping and pong nodes create local consumers and publishers to exchange messages
   """
+  alias Ockam.SecureChannel
+  alias Ockam.Vault
+  alias Ockam.Vault.Software, as: SoftwareVault
+
   alias Ockam.Example.Stream.Ping
   alias Ockam.Example.Stream.Pong
 
@@ -38,44 +42,67 @@ defmodule Ockam.Example.Stream.BiDirectional.Local do
     }
   end
 
-  def stream_options() do
-    config = config()
-
-    {:ok, hub_ip_n} = :inet.parse_address(to_charlist(config.hub_ip))
-    tcp_address = %Ockam.Transport.TCPAddress{ip: hub_ip_n, port: config.hub_port}
-
-    [
-      service_route: [tcp_address, config.service_address],
-      index_route: [tcp_address, config.index_address],
-      partitions: 1
-    ]
-  end
-
-  ## This should be run on the PONG node
-  def init_pong() do
+  def secure_channel_listener() do
     ensure_tcp(5000)
     ## PONG worker
     {:ok, "pong"} = Pong.create(address: "pong")
 
+    create_secure_channel_listener()
+
     ## Create a local subscription to forward pong_topic messages to local node
-    subscribe("pong_topic", "pong")
+    subscribe("sc_listener_topic", "pong")
   end
 
-  def run() do
+  def secure_channel() do
     ensure_tcp(3000)
 
     ## PING worker
     Ping.create(address: "ping")
 
     ## Subscribe to response topic
-    subscribe("ping_topic", "ping")
+    subscribe("sc_initiator_topic", "ping")
 
     ## Create local publisher worker to forward to pong_topic and add metadata to
     ## messages to send responses to ping_topic
-    {:ok, address} = init_publisher("pong_topic", "ping_topic")
+    {:ok, publisher} = init_publisher("sc_listener_topic", "sc_initiator_topic")
+
+    {:ok, channel} = create_secure_channel([publisher, "SC_listener"])
 
     ## Send a message THROUGH the local publisher to the remote worker
-    send_message([address, "pong"])
+    send_message([channel, "pong"], ["ping"], "0")
+  end
+
+  defp create_secure_channel_listener() do
+    {:ok, vault} = SoftwareVault.init()
+    {:ok, identity} = Vault.secret_generate(vault, type: :curve25519)
+
+    SecureChannel.create_listener(
+      vault: vault,
+      identity_keypair: identity,
+      address: "SC_listener"
+    )
+  end
+
+  defp create_secure_channel(route_to_listener) do
+    {:ok, vault} = SoftwareVault.init()
+    {:ok, identity} = Vault.secret_generate(vault, type: :curve25519)
+
+    {:ok, c} =
+      SecureChannel.create(route: route_to_listener, vault: vault, identity_keypair: identity)
+
+    wait(fn -> SecureChannel.established?(c) end)
+    {:ok, c}
+  end
+
+  defp wait(fun) do
+    case fun.() do
+      true ->
+        :ok
+
+      false ->
+        :timer.sleep(100)
+        wait(fun)
+    end
   end
 
   def init_publisher(publisher_stream, consumer_stream) do
@@ -86,11 +113,11 @@ defmodule Ockam.Example.Stream.BiDirectional.Local do
     )
   end
 
-  def send_message(onward_route) do
+  def send_message(onward_route, return_route, payload) do
     msg = %{
       onward_route: onward_route,
-      return_route: ["ping"],
-      payload: "0"
+      return_route: return_route,
+      payload: payload
     }
 
     Ockam.Router.route(msg)
@@ -108,5 +135,18 @@ defmodule Ockam.Example.Stream.BiDirectional.Local do
 
     ## This is necessary to make sure we don't spawn publisher for each message
     PublisherRegistry.start_link([])
+  end
+
+  def stream_options() do
+    config = config()
+
+    {:ok, hub_ip_n} = :inet.parse_address(to_charlist(config.hub_ip))
+    tcp_address = %Ockam.Transport.TCPAddress{ip: hub_ip_n, port: config.hub_port}
+
+    [
+      service_route: [tcp_address, config.service_address],
+      index_route: [tcp_address, config.index_address],
+      partitions: 1
+    ]
   end
 end

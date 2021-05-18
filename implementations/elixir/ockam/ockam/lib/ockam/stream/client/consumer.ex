@@ -50,6 +50,8 @@ defmodule Ockam.Stream.Client.Consumer do
     stream_name = Keyword.fetch!(options, :stream_name)
     partitions = Keyword.fetch!(options, :partitions)
 
+    client_id = Keyword.get(options, :client_id, Map.get(state, :address))
+
     message_handler = Keyword.fetch!(options, :message_handler)
 
     create_stream(service_route, stream_name, partitions, state)
@@ -59,6 +61,7 @@ defmodule Ockam.Stream.Client.Consumer do
       |> Map.put(:stream_name, stream_name)
       |> Map.put(:index_route, index_route)
       |> Map.put(:message_handler, message_handler)
+      |> Map.put(:client_id, client_id)
 
     {:ok, state}
   end
@@ -120,7 +123,7 @@ defmodule Ockam.Stream.Client.Consumer do
 
   def index_id(state) do
     %{
-      client_id: Map.get(state, :address),
+      client_id: Map.get(state, :client_id),
       stream_name: Map.get(state, :stream_name)
     }
   end
@@ -177,10 +180,8 @@ defmodule Ockam.Stream.Client.Consumer do
         consume_after(@idle_timeout, state)
 
       _msgs ->
-        Logger.info("Messages: #{inspect(messages)}")
         max_index = messages |> Enum.max_by(fn %{index: index} -> index end) |> Map.get(:index)
         commit_index = max_index + 1
-        Logger.info("max index is #{max_index}: save #{commit_index}")
         save_index(commit_index, state)
         process_messages(messages, state)
         consume(commit_index, state)
