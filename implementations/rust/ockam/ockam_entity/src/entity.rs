@@ -10,6 +10,8 @@ pub mod identifiers;
 pub use identifiers::*;
 pub mod secrets;
 pub use secrets::*;
+pub mod remote;
+pub use remote::*;
 
 /// An Entity represents an identity in various authentication contexts.
 #[derive(Clone)]
