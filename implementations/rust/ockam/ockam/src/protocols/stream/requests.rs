@@ -2,6 +2,7 @@
 
 use crate::protocols::ProtocolPayload;
 use serde::{Deserialize, Serialize};
+use serde_bare::Uint;
 
 /// Request a new mailbox to be created
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -23,16 +24,16 @@ impl CreateStreamRequest {
 /// Push a message into the mailbox
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct PushRequest {
-    pub request_id: usize, // uint
+    pub request_id: Uint, // uint
     pub data: Vec<u8>,
 }
 
 impl PushRequest {
-    pub fn new<T: Into<Vec<u8>>>(request_id: usize, data: T) -> ProtocolPayload {
+    pub fn new<T: Into<Vec<u8>>>(request_id: u64, data: T) -> ProtocolPayload {
         ProtocolPayload::new(
             "stream_push",
             Self {
-                request_id,
+                request_id: Uint(request_id),
                 data: data.into(),
             },
         )
@@ -42,19 +43,19 @@ impl PushRequest {
 /// Pull messages from the mailbox
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct PullRequest {
-    pub request_id: usize,
-    pub index: usize,
-    pub limit: usize,
+    pub request_id: Uint,
+    pub index: Uint,
+    pub limit: Uint,
 }
 
 impl PullRequest {
-    pub fn new(request_id: usize, index: usize, limit: usize) -> ProtocolPayload {
+    pub fn new(request_id: u64, index: u64, limit: u64) -> ProtocolPayload {
         ProtocolPayload::new(
             "stream_pull",
             Self {
-                request_id,
-                index,
-                limit,
+                request_id: Uint(request_id),
+                index: Uint(index),
+                limit: Uint(limit),
             },
         )
     }
@@ -70,7 +71,7 @@ pub enum Index {
     Save {
         stream_name: String,
         client_id: String,
-        index: usize,
+        index: Uint,
     },
 }
 
@@ -85,13 +86,13 @@ impl Index {
         )
     }
 
-    pub fn save<S: Into<String>>(stream_name: S, client_id: S, index: usize) -> ProtocolPayload {
+    pub fn save<S: Into<String>>(stream_name: S, client_id: S, index: u64) -> ProtocolPayload {
         ProtocolPayload::new(
             "stream_index",
             Self::Save {
                 stream_name: stream_name.into(),
                 client_id: client_id.into(),
-                index,
+                index: Uint(index),
             },
         )
     }
