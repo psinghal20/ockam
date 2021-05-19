@@ -1,42 +1,25 @@
-use ockam::{Context, Profile, Result, Route, SecureChannelTrait, TcpTransport, Vault, TCP, Entity};
+use ockam::{Context, LocalEntity, RemoteEntity, Result, Route, TcpTransport, TCP};
 
 #[ockam::node]
 async fn main(mut ctx: Context) -> Result<()> {
-    // Create a cloud node by going to https://hub.ockam.network
-    let cloud_node_tcp_address = "40.78.99.34:4000";
+    let mut local = LocalEntity::create(&ctx).await?;
 
-    let secure_channel_listener_forwarding_address =
-        "2f7af426";
+    let cloud_address = "40.78.99.34:4000";
 
-    // Initialize the TCP Transport.
+    let cloud_node =
+        RemoteEntity::create(Route::new().append_t(TCP, cloud_address).append("dc1c226a"));
+
     let tcp = TcpTransport::create(&ctx).await?;
+    tcp.connect(cloud_address).await?;
 
-    // Create a TCP connection to your cloud node.
-    tcp.connect(cloud_node_tcp_address).await?;
+    let channel = local.secure_channel_to(cloud_node).await?;
 
-    let vault = Vault::create(&ctx)?;
+    let route = Route::create(vec![channel, "echoer".into()]);
 
-    let mut alice = Entity::new(Profile::create(&ctx, &vault).await?);
+    local.send(route, "Hello world!".to_string()).await?;
 
-    let channel = alice
-        .create_secure_channel(
-            &ctx,
-            Route::new()
-                .append_t(TCP, cloud_node_tcp_address)
-                .append(secure_channel_listener_forwarding_address).into(),
-            &vault,
-        )
-        .await?;
-
-    ctx.send(
-        Route::new().append(channel).append("echoer"),
-        "Hello world!".to_string(),
-    )
-        .await?;
-
-    // Wait to receive a reply and print it.
     let reply = ctx.receive::<String>().await?;
-    println!("App Received: {}", reply); // should print "Hello Ockam!"
+    println!("App Received: {}", reply);
 
     // Stop all workers, stop the node, cleanup and return.
     ctx.stop().await

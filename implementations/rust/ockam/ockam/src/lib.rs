@@ -42,16 +42,15 @@ pub use error::*;
 mod credential;
 mod lease;
 mod local_entity;
-pub use local_entity::*;
-
 pub use credential::*;
 pub use lease::*;
-
+pub use local_entity::*;
 mod remote_forwarder;
-pub use remote_forwarder::*;
-
 pub use ockam_core::worker;
+pub use remote_forwarder::*;
 pub mod protocols;
+pub mod remote_entity;
+pub use remote_entity::*;
 
 pub use ockam_core::{
     Address, Any, Encoded, Error, Message, ProtocolId, Result, Route, Routed, RouterMessage,

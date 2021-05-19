@@ -19,6 +19,15 @@ impl Route {
         RouteBuilder::new()
     }
 
+    /// Create a route from a Vec of addresses
+    pub fn create<T: Into<Address>>(vt: Vec<T>) -> Self {
+        let mut route = Route::new();
+        for addr in vt {
+            route = route.append(addr.into());
+        }
+        route.into()
+    }
+
     /// Parse a route from a string
     pub fn parse<S: Into<String>>(s: S) -> Option<Route> {
         let s = s.into();
@@ -104,6 +113,10 @@ impl<T: Into<Address>> From<T> for Route {
         Route::new().append(addr).into()
     }
 }
+// A Vec of addresses is a valid route (if it is assumed vec index order is route order)
+/*impl<T: Into<Address>> From<Vec<T>> for Route {
+
+}*/
 
 /// Utility type to build and manipulate routes
 pub struct RouteBuilder<'r> {
