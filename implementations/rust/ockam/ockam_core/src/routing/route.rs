@@ -106,17 +106,31 @@ impl From<RouteBuilder<'_>> for Route {
     }
 }
 
-// A single address is a valid route
-impl<T: Into<Address>> From<T> for Route {
-    fn from(t: T) -> Self {
-        let addr: Address = t.into();
+// A single address is a valid route. TODO Using Into<Address> here is incompatible with the From<Vec<T>> below. Why?
+impl From<Address> for Route {
+    fn from(address: Address) -> Self {
+        let addr: Address = address.into();
         Route::new().append(addr).into()
     }
 }
-// A Vec of addresses is a valid route (if it is assumed vec index order is route order)
-/*impl<T: Into<Address>> From<Vec<T>> for Route {
 
-}*/
+// TODO this should be covered by Into<Address>, hack for the above.
+impl From<&str> for Route {
+    fn from(s: &str) -> Self {
+        Address::from(s).into()
+    }
+}
+
+// A Vec of addresses is a valid route (if it is assumed vec index order is route order)
+impl<T: Into<Address>> From<Vec<T>> for Route {
+    fn from(vt: Vec<T>) -> Self {
+        let mut route = Route::new();
+        for t in vt {
+            route = route.append(t.into());
+        }
+        route.into()
+    }
+}
 
 /// Utility type to build and manipulate routes
 pub struct RouteBuilder<'r> {
@@ -169,5 +183,17 @@ impl Drop for RouteBuilder<'_> {
                 inner: self.inner.clone(),
             };
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{Address, Route};
+
+    #[test]
+    fn test_route_fom_vec() {
+        let address = Address::from_string("a");
+        let route: Route = vec![address, "b".into()].into();
+        println!("{:#?}", route)
     }
 }
