@@ -42,6 +42,7 @@ pub use error::*;
 mod credential;
 mod delay;
 mod lease;
+mod monotonic;
 
 pub use credential::*;
 pub use delay::*;
